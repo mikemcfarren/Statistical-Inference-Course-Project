@@ -1,0 +1,102 @@
+---
+title: "Statistical Inference Course Project - Part 2"
+author: "Mike McFarren"
+date: "November 27, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+Now in the second portion of the project, I'm going to analyze the [ToothGrowth {datasets}](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html) in the R datasets package.
+
+
+### 1. Load the ToothGrowth data and perform some basic exploratory data analyses
+
+```{r}
+library(datasets)
+library(ggplot2)
+
+data("ToothGrowth")
+
+data <- ToothGrowth
+
+summary(data)
+str(data)
+head(data)
+
+
+```
+
+The ToothGrowth dataset describes the effect of Vitamin C on tooth growth in guinea pigs.  This dataset contained 60 observations on 3 variables:
+
+- len (numeric): Length of odontoblasts (teeth) in millimeters
+- supp (factor): Vitamin C supplement type (OJ=Orange Juice, VC=Ascorbic Acid)
+- dose (numeric): Dose in milligrams/day (0.5, 1, or 2)
+
+### 2. Provide a basic summary of the data.
+
+The average odontoblasts lengths from the sample set is <span style="color:blue">`r round(mean(ToothGrowth$len), 3)`</span>, with a standard deviation of <span style="color:blue">`r round(sd(ToothGrowth$len), 3)`</span>.
+
+
+```{r}
+with(ToothGrowth, table(dose, supp))
+```
+
+We also know that there are 10 guinea pigs in each of the subgroups, dose by supp.
+
+
+```{r}
+
+ggplot(data, aes(dose, len)) +
+  geom_boxplot(aes(fill = as.factor(dose))) + 
+  facet_grid(. ~ supp) +
+  xlab('Dose (mg/day)') +
+  ylab('Odontoblast length (mm)') +
+  ggtitle('Odontoblast length by dose level and supplement type')
+
+
+```
+
+From this chart, we can see a positive correlation in both supplements between odontoblast length and Vitamin C doses.  
+
+
+### 3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+
+For the purpose of this assignment, I am assuming that the guinea pigs were randomly assigned, thus independence is guaranteed and the observation came from a nearly normal distribution. And since we are dealing with small sets of data (n <= 30), the skewness of the population could yield a distribution that is not normal, so I have chosen to use Gosset's T distribution for hypothesis testing and therefore T confidence intervals will be constructed.
+
+```{r}
+
+t_diff_supp <- t.test(len ~ supp, ToothGrowth, var.equal = FALSE)
+t_diff_supp
+
+
+```
+
+The p-value of `r t_diff_supp$p.value` is larger than the significance value of 0.05, so we fail to reject the null hypothesis. As illustrated above, the confidence interval includes 0, so the data does not provide a statistically significant difference between the 2 groups.
+
+
+```{r}
+
+test1 <- t.test(ToothGrowth$len[ToothGrowth$dose == 2], ToothGrowth$len[ToothGrowth$dose == 1]) 
+test1
+
+test2 <- t.test(ToothGrowth$len[ToothGrowth$dose == 2], ToothGrowth$len[ToothGrowth$dose == 0.5])
+test2
+
+test3 <- t.test(ToothGrowth$len[ToothGrowth$dose == 1], ToothGrowth$len[ToothGrowth$dose == 0.5]) 
+test3
+
+```
+Performing T-test permutations to cover all possible dose combinations, we can see that in all 3 cases the p-value is smaller than 0.05, which means we reject the null hypothesis for all 3 cases, and can conclude from this data that there is strong evidence that the odontoblast length of guinea pigs is, on average, different when compared to other dose levels.
+
+For example, from these T-tests,we are 95% confident that the odontoblast length for guinea pigs that were administered 2 mg/day doses of Vitamin C is, on average, between `r test1$conf.int[1]` and `r test1$conf.int[2]` mm larger than those guinea pigs that were administered 1 mg/day.
+
+
+### 4. State your conclusions and the assumptions needed for your conclusions.
+
+The observed difference of odontoblast lengths, on average, across supplement types is statistically not different from 0.  Our observations also led us to the finding that there is a positive correlation of odontoblast length and dose levels. 
+
